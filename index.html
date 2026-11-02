@@ -35,11 +35,14 @@ small{display:block;font-weight:400;font-size:11px;color:#ffd9bf}
 #msg{position:fixed;top:28%;left:0;right:0;text-align:center;font-size:30px;font-weight:900;font-style:italic;z-index:3;pointer-events:none;text-shadow:0 0 12px #000,0 2px 0 #a33;transition:opacity .3s}
 .tb{position:fixed;z-index:4;border-radius:50%;border:3px solid #fff8;background:#ffffff1f;color:#fff;font-size:24px;font-weight:900;display:flex;align-items:center;justify-content:center;touch-action:none}
 .tb.on{background:#ffffff55}
-#bL{left:14px;bottom:16px;width:84px;height:84px}
-#bR{left:110px;bottom:16px;width:84px;height:84px}
+#bL{left:9px;bottom:40px;width:84px;height:84px}
+#bR{left:131px;bottom:40px;width:84px;height:84px}
 #bG{right:126px;bottom:16px;width:96px;height:96px;background:#3c9a3c55}
 #bB{right:236px;bottom:16px;width:76px;height:76px;background:#a3333355;font-size:15px}
 #bJ{right:14px;bottom:30px;width:104px;height:104px;background:#2d7cff66;font-size:20px}
+#bTU,#bTD{left:84px;width:56px;height:56px;box-sizing:border-box;font-size:11px;line-height:1;flex-direction:column;border-width:2px;background:#ffffff26;z-index:5}
+#bTU{bottom:103px}#bTD{bottom:11px}
+#bTU b,#bTD b{font-size:15px}
 #rot{z-index:9}
 #gar{overflow:auto;justify-content:flex-start}
 </style></head><body>
@@ -49,7 +52,7 @@ small{display:block;font-weight:400;font-size:11px;color:#ffd9bf}
 <div style="text-align:center;flex:1"><div id="mid"></div><div id="prog"></div></div>
 <div style="text-align:right"><span id="tim"></span> <button class="b" id="mute" style="padding:4px 9px">🔊</button> <button class="b" id="pause" style="padding:4px 9px">❚❚</button></div></div>
 <div id="msg"></div>
-<div id="bL" class="tb hide">◀</div><div id="bR" class="tb hide">▶</div>
+<div id="bL" class="tb hide">◀</div><div id="bR" class="tb hide">▶</div><div id="bTU" class="tb hide"><b>▲</b>Tilt</div><div id="bTD" class="tb hide">Tilt<b>▼</b></div>
 <div id="bB" class="tb hide">BRAKE</div><div id="bG" class="tb hide">GAS</div><div id="bJ" class="tb hide">JET</div>
 <div id="menu" class="ov"><h1>MARS ROADSTER</h1><div class="sub">Low gravity. Cold-gas thrusters. Huge gaps.</div>
 <h2>Mode</h2><div class="row" id="modes"></div><h2>Route</h2><div class="row" id="routes"></div>
@@ -277,16 +280,18 @@ function boom(v,d){if(!AC)return;const s=AC.createBufferSource();s.buffer=AC._nb
 function setMute(m){muted=m;localStorage.setItem('marsroadster.mute',m?'1':'0');$('mute').textContent=m?'🔇':'🔊';if(master)master.gain.value=m?0:.5}
 $('mute').onclick=()=>{audio();setMute(!muted)};setMute(muted);
 // ---------- input ----------
-const K={l:0,r:0,g:0,b:0,j:0};
+const K={l:0,r:0,g:0,b:0,j:0,u:0,d:0};
 const km={ArrowLeft:'l',KeyA:'l',ArrowRight:'r',KeyD:'r',ArrowUp:'g',KeyW:'g',ArrowDown:'b',KeyS:'b',Space:'j',KeyJ:'j',ShiftLeft:'j'};
-addEventListener('keydown',e=>{const k=km[e.code];if(k){K[k]=1;e.preventDefault();audio()}if(e.code==='Escape'||e.code==='KeyP')pauseT()});
-addEventListener('keyup',e=>{const k=km[e.code];if(k)K[k]=0});
-const tbs={bL:'l',bR:'r',bG:'g',bB:'b',bJ:'j'};
-function touchUpd(e){e.preventDefault();audio();const on={l:0,r:0,g:0,b:0,j:0};for(const t of e.touches){const el=document.elementFromPoint(t.clientX,t.clientY);if(el&&tbs[el.id])on[tbs[el.id]]=1;else if(t.clientX<W*.4){if(t.clientX<W*.2)on.l=1;else on.r=1}}for(const k in on)K['t'+k]=on[k];for(const id in tbs)$(id).classList.toggle('on',!!on[tbs[id]])}
+const tk={ArrowUp:'u',KeyW:'u',ArrowDown:'d',KeyS:'d'};
+addEventListener('keydown',e=>{const k=km[e.code];if(tk[e.code])K[tk[e.code]]=1;if(k){K[k]=1;e.preventDefault();audio()}if(e.code==='Escape'||e.code==='KeyP')pauseT()});
+addEventListener('keyup',e=>{const k=km[e.code];if(tk[e.code])K[tk[e.code]]=0;if(k)K[k]=0});
+const tbs={bL:'l',bR:'r',bG:'g',bB:'b',bJ:'j',bTU:'u',bTD:'d'};
+function touchUpd(e){e.preventDefault();audio();const on={l:0,r:0,g:0,b:0,j:0,u:0,d:0};for(const t of e.touches){let el=document.elementFromPoint(t.clientX,t.clientY);if(el&&el.closest)el=el.closest('.tb')||el;if(el&&tbs[el.id])on[tbs[el.id]]=1;else if(t.clientX<W*.4){if(t.clientX<W*.2)on.l=1;else on.r=1}}for(const k in on)K['t'+k]=on[k];for(const id in tbs)$(id).classList.toggle('on',!!on[tbs[id]])}
 for(const el of[cv,...Object.keys(tbs).map($)])for(const ev of['touchstart','touchmove','touchend','touchcancel'])el.addEventListener(ev,touchUpd,{passive:false});
 const inp=k=>K[k]||K['t'+k];
 // ---------- game ----------
 let mode='tt',route=0,st='menu',C,clock,lastCp,cpIdx,cpLeft,score,msgT=0,slow=1,earned,jPrev=0,frames=0,fpsT=0,fps=0;
+const AIRG=2.2,THR_UP=.6,THR_FW=.8;let TILT_UP=1;
 function stats(){return{tank:100+S.up.tank*45,thrust:7+S.up.thrust*2.6,rech:28+S.up.recharge*16}}
 function newCar(z){const x=CX(z);return{x,y:GH(x,z),z,yaw:roadYaw(z),pitch:0,roll:0,v:0,vx:0,vy:0,vz:0,ground:true,fuel:stats().tank,air:0,spin:0,wob:0,thr:0,dead:0,pr:0,rr:0,off:0}}
 function start(){T=build(route);buildWorld();applySkin();C=newCar(10);clock=0;cpIdx=0;lastCp=10;cpLeft=mode==='cp'?T.R.cpT+6:0;score=0;slow=1;earned=0;st='play';clearTracks();flare=0;show();msg('GO!',1);snapCam()}
@@ -319,7 +324,7 @@ function step(dt){const s=stats();dt*=slow;clock+=dt;if(msgT>0){msgT-=dt/slow;if
  if(mode==='fs'&&clock>90){finish(true);return}
  upPool(dust,dt,G*.3);upPool(jetP,dt,0);upPool(spark,dt,-1);
  if(C.dead>0){C.dead-=dt/slow;if(C.dead<=0)doRespawn();return}
- const L=inp('l'),R=inp('r'),Gs=inp('g'),B=inp('b'),J=inp('j'),jTap=J&&!jPrev;jPrev=J;C.thr=0;const steer=(L?1:0)-(R?1:0);
+ const U=inp('u'),D=inp('d'),L=inp('l'),R=inp('r'),Gs=inp('g'),B=inp('b'),J=inp('j'),jTap=J&&!jPrev;jPrev=J;C.thr=0;const steer=(L?1:0)-(R?1:0);
  if(C.ground){
   const off=Math.abs(C.x-CX(C.z))>ROAD+1;C.off=off;
   C.yaw+=steer*(1.5/(1+Math.abs(C.v)/35))*Math.min(1,Math.abs(C.v)/8)*Math.sign(C.v||1)*dt;
@@ -336,16 +341,16 @@ function step(dt){const s=stats();dt*=slow;clock+=dt;if(msgT>0){msgT-=dt/slow;if
   if(C.ground){const rx=Math.cos(C.yaw),rz=-Math.sin(C.yaw);if(Math.abs(C.v)>5){const ne=Q>0?(Math.abs(C.v)>25?2:1):1;for(let e=0;e<ne;e++)for(const sd of[-.9,.9])if(Math.random()<Math.min(1,Math.abs(C.v)/18))emit(dust,C.x-fx*1.8+rx*sd+(Math.random()-.5)*.4,C.y+.35,C.z-fz*1.8+rz*sd,-fx*C.v*.12+(Math.random()-.5)*2.5,.6+Math.random()*1.8,-fz*C.v*.12+(Math.random()-.5)*2.5,1.1+Math.random()*(off?2.2:1.2))}
    trD+=Math.abs(hs)*dt;if(trD>.9&&Q>0){trD=0;const onR=!off;for(const sd of[-.9,.9]){const tx=C.x-fx*1.42+rx*sd,tz=C.z-fz*1.42+rz*sd;addTrack(tx,onR?P(tz)+.3:GH(tx,tz),tz,C.yaw,onR)}}}
  }
- if(!C.ground){C.vy-=G*dt;C.air+=dt;
-  const pin=(B?1:0)-(Gs?1:0);C.pr+=(pin*3.2-C.pr)*Math.min(1,dt*4);C.rr+=(-steer*3.2-C.rr)*Math.min(1,dt*4);
+ if(!C.ground){const thrOn=J&&C.fuel>0;const nu=Math.max(0,Math.min(1,wrap(C.pitch)/.45))*(1-Math.max(0,wrap(C.pitch)-.9));C.vy-=G*(thrOn?1-.6*nu:AIRG)*dt;C.air+=dt;
+  const pin=(U?TILT_UP:0)-(D?TILT_UP:0);C.pr+=(pin*3.2-C.pr)*Math.min(1,dt*4);C.rr+=(-steer*3.2-C.rr)*Math.min(1,dt*4);
   C.pitch+=C.pr*dt;C.roll+=C.rr*dt;C.spin+=(Math.abs(C.pr)+Math.abs(C.rr))*dt;
-  if(J&&C.fuel>0){car.updateMatrixWorld();const up=new THREE.Vector3(0,1,0).applyQuaternion(car.quaternion),fw=new THREE.Vector3(0,0,1).applyQuaternion(car.quaternion);const d=up.multiplyScalar(1).add(fw.multiplyScalar(.55)).normalize().multiplyScalar(s.thrust);C.vx+=d.x*dt;C.vy+=d.y*dt;C.vz+=d.z*dt;C.fuel-=30*dt;C.thr=1;if(Math.random()<.5)emit(spark,C.x+(Math.random()-.5)*2,C.y-.2,C.z+(Math.random()-.5)*3,(Math.random()-.5)*3,-3-Math.random()*4,(Math.random()-.5)*3,.4)}
+  if(J&&C.fuel>0){car.updateMatrixWorld();const up=new THREE.Vector3(0,1,0).applyQuaternion(car.quaternion),fw=new THREE.Vector3(0,0,1).applyQuaternion(car.quaternion);const d=up.multiplyScalar(THR_UP).add(fw.multiplyScalar(THR_FW)).normalize().multiplyScalar(s.thrust);C.vx+=d.x*dt;C.vy+=d.y*dt;C.vz+=d.z*dt;C.fuel-=24*dt;C.thr=1;if(Math.random()<.5)emit(spark,C.x+(Math.random()-.5)*2,C.y-.2,C.z+(Math.random()-.5)*3,(Math.random()-.5)*3,-3-Math.random()*4,(Math.random()-.5)*3,.4)}
   C.x+=C.vx*dt;C.y+=C.vy*dt;C.z+=C.vz*dt;
-  {const ga=gapAt(C.z);if(ga&&C.dead<=0){const tz=Math.min(ga.b+8,C.z+40),ex=CX(tz)-C.x,tl=Math.max(.5,(ga.b+8-C.z)/Math.max(8,C.vz)),want=ex/tl,a=Math.max(-7,Math.min(7,(want-C.vx)*1.5));C.vx+=a*dt;const dy=wrap(roadYaw(C.z)-C.yaw);C.yaw+=dy*Math.min(1,dt*1.2)}}
+  {const ga=gapAt(C.z);if(ga&&C.dead<=0){const tz=Math.min(ga.b+8,C.z+40),ex=CX(tz)-C.x,tl=Math.max(.5,(ga.b+8-C.z)/Math.max(8,C.vz)),want=ex/tl,a=Math.max(-3,Math.min(3,(want-C.vx)*1.0));C.vx+=a*dt;const dy=wrap(roadYaw(C.z)-C.yaw);C.yaw+=dy*Math.min(1,dt*.6)}}
   const g=gapAt(C.z);if(g&&C.y<g.floor+6)respawn(g.big?'INTO THE CHASM!':'FELL IN!');
   else{const hg=GH(C.x,C.z);
    if(C.y<=hg){const pg=gapAt(C.z-2.5);if(pg&&C.z>pg.b-.5&&hg-C.y>(Math.abs(C.x-CX(C.z))<ROAD+2?6:3.2)){respawn('HIT THE WALL!')}else{C.y=hg;land()}}
-   else if(C.vy<0&&C.dead<=0){const ah=C.y-GH(C.x+C.vx*.25,C.z+C.vz*.25);const tt=ah/Math.max(1,-C.vy);if(tt<.6&&!(L||R||Gs||B)){const sp=slopeAt(C.x,C.z,C.yaw),sr=rollAt(C.x,C.z,C.yaw);const dp=wrap(C.pitch-sp),dr=wrap(C.roll-sr);if(Math.abs(dp)<1.1&&Math.abs(dr)<1.1){const k=Math.min(1,dt*4.5);C.pitch-=dp*k;C.roll-=dr*k;C.pr*=1-k;C.rr*=1-k}}}}
+   else if(C.vy<0&&C.dead<=0){const ah=C.y-GH(C.x+C.vx*.25,C.z+C.vz*.25);const tt=ah/Math.max(1,-C.vy);if(tt<.6&&!(L||R||U||D)){const sp=slopeAt(C.x,C.z,C.yaw),sr=rollAt(C.x,C.z,C.yaw);const dp=wrap(C.pitch-sp),dr=wrap(C.roll-sr);if(Math.abs(dp)<1.1&&Math.abs(dr)<1.1){const k=Math.min(1,dt*4.5);C.pitch-=dp*k;C.roll-=dr*k;C.pr*=1-k;C.rr*=1-k}}}}
   const big=g&&g.big&&!C.ground&&C.dead<=0;const tgt=big&&C.z>g.a+(g.b-g.a)*.25&&C.z<g.a+(g.b-g.a)*.7?.35:1;slow+=(tgt-slow)*Math.min(1,dt/slow*4);if(big&&slow<.6&&msgT<=0)msg('VALLES LEAP',1)
  }else slow+=(1-slow)*.2;
  if(C.thr>0){car.updateMatrixWorld();const v=new THREE.Vector3();for(const pg of plumes)if(Math.random()<.6){pg.getWorldPosition(v);emit(jetP,v.x,v.y-.4,v.z,C.vx*.5+(Math.random()-.5),C.vy*.5-10,C.vz*.5+(Math.random()-.5),.3)}}
@@ -411,6 +416,6 @@ $('again').onclick=()=>{audio();start()};$('toMenu').onclick=()=>{st='menu';T=nu
 function pauseT(){if(st==='play'){st='pause';show()}else if(st==='pause'){st='play';show()}}
 $('pause').onclick=pauseT;$('resume').onclick=pauseT;$('quit').onclick=()=>{st='menu';T=null;show()};
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&st==='play'){st='pause';show()}});
-window.__mr={get C(){return C},get T(){return T},get st(){return st},K,setMode:m=>mode=m,setRoute:r=>route=r,start,get slow(){return slow},get fps(){return fps},land,GH,P,get Q(){return Q},set camOv(f){camOv=f},CX,roadYaw,gapAt,camera};
+window.__mr={get C(){return C},get T(){return T},get st(){return st},K,setMode:m=>mode=m,setRoute:r=>route=r,start,get slow(){return slow},get fps(){return fps},land,GH,P,get car(){return car},get Q(){return Q},set camOv(f){camOv=f},CX,roadYaw,gapAt,camera};
 applySkin();show();requestAnimationFrame(loop);
 </script></body></html>
