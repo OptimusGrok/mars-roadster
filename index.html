@@ -119,8 +119,8 @@ const UPCOST=[100,220,400];
 const G=3.71,ROAD=6;
 const ROUTES=[
  {name:'Dune Sprint',desc:'Rolling dunes, first gaps',cpT:24,seg:[['flat',80],['dunes',260,3],['flat',45],['gap',50],['dunes',200,4],['cp'],['ridge',160,10],['flat',45],['gap',80],['dunes',220,3],['cp'],['crater',200],['flat',45],['gap',110],['flat',80],['cp'],['dunes',240,5],['flat',45],['gap',70],['ridge',200,12],['cp'],['dunes',220,4],['flat',45],['gap',100],['crater',200],['cp'],['ridge',180,14],['flat',45],['gap',120],['flat',80],['end']]},
- {name:'Crater Fields',desc:'Bowls, rims and pits',cpT:24,craters:1,seg:[['flat',60],['crater',300],['flat',45],['gap',70],['crater',260],['cp'],['dunes',160,5],['flat',45],['gap',120],['crater',300],['cp'],['ridge',200,14],['flat',45],['gap',140],['flat',80],['cp'],['crater',300],['flat',45],['gap',90],['dunes',200,4],['cp'],['crater',260],['flat',45],['gap',130],['ridge',200,16],['cp'],['crater',240],['flat',45],['gap',150],['flat',80],['end']]},
- {name:'Ridge Line',desc:'Big crests, a wide canyon, big air',canyonZ:[1100,2500],wideZ:[[1400,2200]],cpT:26,seg:[['flat',60],['ridge',300,16],['flat',45],['gap',90],['ridge',260,20],['cp'],['dunes',200,4],['flat',45],['gap',150],['ridge',300,24],['cp'],['crater',220],['flat',45],['gap',170],['flat',80],['cp'],['ridge',280,18],['flat',45],['gap',120],['dunes',220,5],['cp'],['ridge',300,22],['flat',45],['gap',160],['crater',200],['cp'],['ridge',260,26],['flat',45],['gap',180],['flat',80],['end']]},
+ {name:'Crater Fields',desc:'Bowls, rims and pits',cpT:24,craters:1,seg:[['flat',60],['crater',300],['flat',45],['gap',70],['crater',260],['cp'],['dunes',160,5],['flat',45],['gap',120],['crater',300],['cp'],['ridge',200,14],['flat',45],['gap',140],['flat',80],['cp'],['crater',300],['flat',45],['gap',90],['dunes',200,4],['cp'],['crater',260],['flat',45],['gap',130],['ridge',200,16],['cp'],['crater',240],['flat',45],['gap',110],['flat',80],['end']]},
+ {name:'Ridge Line',desc:'Big crests, a wide canyon, big air',canyonZ:[1100,2500],wideZ:[[1400,2200]],cpT:26,seg:[['flat',60],['ridge',300,16],['flat',45],['gap',90],['ridge',260,20],['cp'],['dunes',200,4],['flat',45],['gap',150],['ridge',300,24],['cp'],['crater',220],['flat',45],['gap',125],['flat',80],['cp'],['ridge',280,18],['flat',45],['gap',120],['dunes',220,5],['cp'],['ridge',300,22],['flat',45],['gap',160],['crater',200],['cp'],['ridge',260,26],['flat',45],['gap',165],['flat',80],['end']]},
  {name:'Valles Leap',desc:'Signature canyon run + the big one',cpT:28,canyon:1,wideZ:[[700,1500],[2500,3100]],seg:[['flat',60],['dunes',200,4],['flat',45],['gap',80],['crater',200],['cp'],['ridge',240,14],['flat',45],['gap',80],['dunes',200,3],['cp'],['crater',220],['flat',45],['gap',80],['ridge',220,12],['cp'],['dunes',240,4],['flat',45],['gap',80],['crater',200],['cp'],['ridge',220,10],['flat',45],['gap',80],['dunes',180,3],['cp'],['flat',120],['leap',420],['flat',120],['end']]},
 ];
 const MODES=[['tt','Time Trial','Fastest run to the finish'],['cp','Checkpoint Race','Beat the clock between checkpoints'],['fs','Freestyle','Airtime, flips, clean landings (90s)']];
@@ -142,8 +142,9 @@ function build(ri){
  const ph=r()*10;
  return{R,h,gaps,cps,marks,len:h.length,ph};
 }
-function P(z){if(z<0)return T.h[0];const i=Math.floor(z);if(i>=T.len-1)return T.h[T.len-1];const a=T.h[i],b=T.h[i+1];if(isNaN(a)||isNaN(b))return NaN;return a+(b-a)*(z-i)}
-function CX(z){return 26*Math.sin(z/170+T.ph)+11*Math.sin(z/73+T.ph*2)}
+function P(z){if(z<0)return T.h[0];const i=Math.floor(z);if(i>=T.len-1)return T.h[T.len-1];const a=T.h[i],b=T.h[i+1];if(isNaN(a))return isNaN(b)?NaN:b;if(isNaN(b))return a;return a+(b-a)*(z-i)}
+function CX0(z){return 26*Math.sin(z/170+T.ph)+11*Math.sin(z/73+T.ph*2)}
+function CX(z){const G=T.gaps;if(G)for(const g of G){if(z>g.a&&z<g.b){const a=CX0(g.a);return a+(CX0(g.b)-a)*(z-g.a)/(g.b-g.a)}}return CX0(z)}
 function roadYaw(z){return Math.atan2(CX(z+1)-CX(z-1),2)}
 function gapAt(z){for(const g of T.gaps)if(z>=g.a-.5&&z<=g.b+.5)return g;return null}
 function noise(x,z){return Math.sin(x*.05+z*.031)*Math.cos(z*.043-x*.021)*3+Math.sin(x*.13+z*.09)*1.2+Math.sin(z*.017+x*.007)*4}
@@ -296,7 +297,8 @@ let mode='tt',route=0,st='menu',C,clock,lastCp,cpIdx,cpLeft,score,msgT=0,slow=1,
 const SIDE=13,AIRG=2.2,THR_UP=.6,THR_FW=.8;let TILT_UP=1;
 function stats(){return{tank:100+S.up.tank*45,thrust:7+S.up.thrust*2.6,rech:28+S.up.recharge*16}}
 function newCar(z){const x=CX(z);return{x,y:GH(x,z),z,yaw:roadYaw(z),pitch:0,roll:0,v:0,vx:0,vy:0,vz:0,ground:true,fuel:stats().tank,air:0,spin:0,wob:0,thr:0,dead:0,pr:0,rr:0,off:0}}
-function start(){T=build(route);buildWorld();applySkin();C=newCar(10);clock=0;cpIdx=0;lastCp=10;cpLeft=mode==='cp'?T.R.cpT+6:0;score=0;slow=1;earned=0;st='play';clearTracks();flare=0;show();msg('GO!',1);snapCam()}
+function legT(i){const c=T.cps,z1=i<c.length?c[i]:T.len,z0=i>0?c[i-1]:10;return Math.round((z1-z0)/(T.R.cpV||27)+4)}
+function start(){T=build(route);buildWorld();applySkin();C=newCar(10);clock=0;cpIdx=0;lastCp=10;cpLeft=mode==='cp'?legT(0)+3:0;score=0;slow=1;earned=0;st='play';clearTracks();flare=0;show();msg('GO!',1);snapCam()}
 function msg(t,d){$('msg').innerHTML=t;$('msg').style.opacity=1;msgT=d||1.2}
 function show(){for(const id of['menu','gar','end','pz'])$(id).classList.add('hide');const p=st==='play';$('hud').classList.toggle('hide',!p);const touch='ontouchstart'in window;for(const id in tbs)$(id).classList.toggle('hide',!(p&&touch));if(st==='menu')menu();if(st==='gar')garage();if(st==='end')$('end').classList.remove('hide');if(st==='pause')$('pz').classList.remove('hide')}
 function respawn(why){C.dead=1.2;msg(why||'CRASH!',1.2);boom(.6,.7);for(let i=0;i<40;i++)emit(dust,C.x,C.y+.5,C.z,(Math.random()-.5)*14,Math.random()*8,(Math.random()-.5)*14,1.5);if(mode==='fs')score=Math.max(0,score-200)}
@@ -357,7 +359,7 @@ function step(dt){const s=stats();dt*=slow;clock+=dt;if(msgT>0){msgT-=dt/slow;if
  }else slow+=(1-slow)*.2;
  
  while(cpIdx<T.cps.length&&C.z>=T.cps[cpIdx]){const last=cpIdx===T.cps.length-1;lastCp=T.cps[cpIdx];T.arches[cpIdx].material.color.set(0x55cc55);cpIdx++;blip(660,.12,'square',.15);setTimeout(()=>blip(990,.2,'square',.15),110);
-  if(last){finish(true);return}if(mode==='cp'){cpLeft+=T.R.cpT;msg('CHECKPOINT +'+T.R.cpT+'s',1)}else msg('CHECKPOINT',.8)}
+  if(last){finish(true);return}if(mode==='cp'){const lt=legT(cpIdx);cpLeft+=lt;msg('CHECKPOINT +'+lt+'s',1)}else msg('CHECKPOINT',.8)}
  if(AC){const sp=C.ground?Math.abs(C.v):Math.hypot(C.vx,C.vz);eng.frequency.value=50+sp*3.2+(Gs?20:0);engG.gain.value=C.dead>0?0:.05+(Gs?.05:0);thrG.gain.value=C.thr*.35}
 }
 // camera
